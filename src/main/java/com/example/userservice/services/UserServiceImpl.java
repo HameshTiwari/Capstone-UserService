@@ -1,26 +1,89 @@
 package com.example.userservice.services;
 
+import com.example.userservice.exceptions.InvalidTokenException;
+import com.example.userservice.exceptions.PasswordMismatchException;
+import com.example.userservice.models.Role;
 import com.example.userservice.models.Token;
 import com.example.userservice.models.User;
+import com.example.userservice.repositories.RoleRepository;
+import com.example.userservice.repositories.TokenRepository;
 import com.example.userservice.repositories.UserRepository;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Optional;
+
 @Service
-public class UerServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
-    public User
+    private TokenRepository tokenRepository;
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private RoleRepository roleRepository;
+    private UserServiceImpl(UserRepository userRepository ,
+                            BCryptPasswordEncoder bCryptPasswordEncoder,
+                            TokenRepository tokenRepository,
+                            RoleRepository roleRepository) {
+        this.userRepository = userRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.tokenRepository = tokenRepository;
+        this.roleRepository = roleRepository;
+    }
+
     @Override
     public User signup(String name, String email, String password) {
-        return null;
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if(optionalUser.isPresent()){
+            return optionalUser.get();
+        }
+
+        User user = new User();
+        user.setEmail(email);
+        user.setName(name);
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+        user.setPassword(bCryptPasswordEncoder.encode(password));
+        Optional<Role> optionalRole= roleRepository.findByValue("STUDENT");
+        user.getRoles().add(optionalRole.get());
+        return userRepository.save(user);
+        //return user;
     }
 
     @Override
-    public Token login(String email, String password) {
-        return null;
+    public Token login(String email, String password) throws PasswordMismatchException {
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if(optionalUser.isEmpty())
+        {
+            return null;
+        }
+        User user = optionalUser.get();
+        if(!bCryptPasswordEncoder.matches(password, user.getPassword()))
+        {
+            throw new PasswordMismatchException("Invalid Password");
+        }
+        Token token = new Token();
+        token.setUser(user);
+        token.setTokenValue(RandomStringUtils.randomAlphanumeric(128));
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_MONTH, 30);
+        Date expiryDate = calendar.getTime();
+
+
+        token.setExpiryDate(expiryDate);
+
+        return tokenRepository.save(token);
     }
 
     @Override
-    public User validateToken(String tokenValue) {
-        return null;
+    public User validateToken(String tokenValue) throws InvalidTokenException {
+        Optional<Token> tokenOptional = tokenRepository.findByTokenValueAndExpiryDateAfter(tokenValue, new Date());
+        if(tokenOptional.isEmpty())
+        {
+           // throw new InvalidTokenException("Token is Invalid or Expired");
+            return null;
+        }
+        return tokenOptional.get().getUser();
     }
 }

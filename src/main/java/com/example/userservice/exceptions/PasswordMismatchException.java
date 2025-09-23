@@ -1,4 +1,7 @@
 package com.example.userservice.exceptions;
 
-public class PasswordMismatchException {
+public class PasswordMismatchException extends Exception{
+    public PasswordMismatchException(String message){
+        super(message);
+    }
 }
