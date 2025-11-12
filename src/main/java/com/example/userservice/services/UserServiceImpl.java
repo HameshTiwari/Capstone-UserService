@@ -1,5 +1,6 @@
 package com.example.userservice.services;
 
+import com.example.userservice.dtos.SendEmailDto;
 import com.example.userservice.exceptions.InvalidTokenException;
 import com.example.userservice.exceptions.PasswordMismatchException;
 import com.example.userservice.models.Role;
@@ -8,7 +9,10 @@ import com.example.userservice.models.User;
 import com.example.userservice.repositories.RoleRepository;
 import com.example.userservice.repositories.TokenRepository;
 import com.example.userservice.repositories.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,14 +26,21 @@ public class UserServiceImpl implements UserService {
     private TokenRepository tokenRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private RoleRepository roleRepository;
+    private KafkaTemplate<String , String> kafkaTemplate;
+    private ObjectMapper objectMapper;
+
     private UserServiceImpl(UserRepository userRepository ,
                             BCryptPasswordEncoder bCryptPasswordEncoder,
                             TokenRepository tokenRepository,
-                            RoleRepository roleRepository) {
+                            RoleRepository roleRepository,
+                            KafkaTemplate<String , String> kafkaTemplate ,
+                            ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.tokenRepository = tokenRepository;
         this.roleRepository = roleRepository;
+        this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -47,6 +58,19 @@ public class UserServiceImpl implements UserService {
         user.setPassword(bCryptPasswordEncoder.encode(password));
         Optional<Role> optionalRole= roleRepository.findByValue("STUDENT");
         user.getRoles().add(optionalRole.get());
+
+        SendEmailDto emaildto = new SendEmailDto();
+        emaildto.setEmail(email);
+        emaildto.setSubject("New User");
+        emaildto.setBody("Welcome new user "+email);
+        try {
+            kafkaTemplate.send("sendEmail", objectMapper.writeValueAsString(emaildto));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+
+
         return userRepository.save(user);
         //return user;
     }

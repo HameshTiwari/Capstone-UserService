@@ -10,9 +10,9 @@
     </parent>
     <groupId>com.example</groupId>
     <artifactId>UserService</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>UserService</name>
-    <description>UserService</description>
+    <version>0.0.1</version>
+    <name>UserServiceHT</name>
+    <description>UserService by H</description>
     <url/>
     <licenses>
         <license/>
@@ -93,6 +93,19 @@
             <artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
             <version>0.13.0</version>
             <scope>runtime</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-netflix-eureka-client -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+            <version>4.3.0</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.springframework.kafka/spring-kafka -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+            <version>3.3.10</version>
         </dependency>
     </dependencies>
 
