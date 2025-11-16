@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -57,17 +58,18 @@ public class UserServiceImpl implements UserService {
 
         user.setPassword(bCryptPasswordEncoder.encode(password));
         Optional<Role> optionalRole= roleRepository.findByValue("STUDENT");
-        user.getRoles().add(optionalRole.get());
+        user.getRoles().add(optionalRole.orElse(new Role()));
+
 
         SendEmailDto emaildto = new SendEmailDto();
         emaildto.setEmail(email);
         emaildto.setSubject("New User");
         emaildto.setBody("Welcome new user "+email);
-        try {
-            kafkaTemplate.send("sendEmail", objectMapper.writeValueAsString(emaildto));
+        /*try {
+            //kafkaTemplate.send("sendEmail", objectMapper.writeValueAsString(emaildto));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
-        }
+        }*/
 
 
 
@@ -105,8 +107,8 @@ public class UserServiceImpl implements UserService {
         Optional<Token> tokenOptional = tokenRepository.findByTokenValueAndExpiryDateAfter(tokenValue, new Date());
         if(tokenOptional.isEmpty())
         {
-           // throw new InvalidTokenException("Token is Invalid or Expired");
-            return null;
+            throw new InvalidTokenException("Token is Invalid or Expired");
+            //return null;
         }
         return tokenOptional.get().getUser();
     }
